@@ -24,7 +24,7 @@ const PlaneGame: React.FC = () => {
   const movePlayer = (e: React.MouseEvent | React.TouchEvent) => {
     if (gameOver) return;
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
     let newX = clientX - rect.left - PLAYER_SIZE / 2;
     newX = Math.max(0, Math.min(newX, GAME_WIDTH - PLAYER_SIZE));
     setPlayerPos(prev => ({ ...prev, x: newX }));
@@ -72,36 +72,46 @@ const PlaneGame: React.FC = () => {
 
   // Collision detection
   useEffect(() => {
-    setEnemies(prevEnemies => {
-      let hit = false;
-      const newEnemies = prevEnemies.filter(enemy => {
-        const bulletHit = bullets.find(bullet => 
-          bullet.x < enemy.x + ENEMY_SIZE &&
-          bullet.x + BULLET_SIZE > enemy.x &&
-          bullet.y < enemy.y + ENEMY_SIZE &&
-          bullet.y + BULLET_SIZE > enemy.y
-        );
-        if (bulletHit) {
-          setScore(s => s + 10);
-          setBullets(bs => bs.filter(b => b.id !== bulletHit.id));
-          return false;
-        }
-        
-        // Player collision
-        if (
-          playerPos.x < enemy.x + ENEMY_SIZE &&
-          playerPos.x + PLAYER_SIZE > enemy.x &&
-          playerPos.y < enemy.y + ENEMY_SIZE &&
-          playerPos.y + PLAYER_SIZE > enemy.y
-        ) {
+    if (gameOver) return;
+    
+    const interval = setInterval(() => {
+      setEnemies(prevEnemies => {
+        let collisionOccurred = false;
+        const newEnemies = prevEnemies.filter(enemy => {
+          const bulletHit = bullets.find(bullet => 
+            bullet.x < enemy.x + ENEMY_SIZE &&
+            bullet.x + BULLET_SIZE > enemy.x &&
+            bullet.y < enemy.y + ENEMY_SIZE &&
+            bullet.y + BULLET_SIZE > enemy.y
+          );
+          
+          if (bulletHit) {
+            setScore(s => s + 10);
+            setBullets(bs => bs.filter(b => b.id !== bulletHit.id));
+            return false;
+          }
+          
+          if (
+            playerPos.x < enemy.x + ENEMY_SIZE &&
+            playerPos.x + PLAYER_SIZE > enemy.x &&
+            playerPos.y < enemy.y + ENEMY_SIZE &&
+            playerPos.y + PLAYER_SIZE > enemy.y
+          ) {
+            collisionOccurred = true;
+          }
+          
+          return true;
+        });
+
+        if (collisionOccurred) {
           setGameOver(true);
         }
-        
-        return true;
+        return newEnemies;
       });
-      return newEnemies;
-    });
-  }, [bullets, playerPos.x, playerPos.y]);
+    }, 50);
+
+    return () => clearInterval(interval);
+  }, [bullets, playerPos.x, playerPos.y, gameOver]);
 
   const resetGame = () => {
     setScore(0);
@@ -112,9 +122,9 @@ const PlaneGame: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#222', minHeight: '100vh', color: 'white', padding: '20px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#222', minHeight: '100vh', color: 'white', padding: '20px', fontFamily: 'Arial' }}>
       <h1>Plane Shooter</h1>
-      <p>Score: {score} | Use Mouse to move, Space to shoot</p>
+      <p>Score: {score} | Move mouse to fly, click to shoot</p>
       
       <div 
         onMouseMove={movePlayer}
@@ -126,8 +136,9 @@ const PlaneGame: React.FC = () => {
           backgroundColor: '#000',
           position: 'relative',
           overflow: 'hidden',
-          cursor: 'none',
-          border: '2px solid #444'
+          cursor: 'crosshair',
+          border: '4px solid #444',
+          borderRadius: '8px'
         }}
       >
         {/* Player */}
@@ -137,9 +148,13 @@ const PlaneGame: React.FC = () => {
           top: playerPos.y,
           width: PLAYER_SIZE,
           height: PLAYER_SIZE,
-          backgroundColor: '#00f',
-          borderRadius: '5px'
-        }} />
+          backgroundColor: '#3498db',
+          borderRadius: '5px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          fontSize: '20px'
+        }}>✈️</div>
 
         {/* Bullets */}
         {bullets.map(b => (
@@ -149,7 +164,8 @@ const PlaneGame: React.FC = () => {
             top: b.y,
             width: BULLET_SIZE,
             height: BULLET_SIZE,
-            backgroundColor: '#ff0'
+            backgroundColor: '#f1c40f',
+            borderRadius: '50%'
           }} />
         ))}
 
@@ -161,19 +177,38 @@ const PlaneGame: React.FC = () => {
             top: e.y,
             width: ENEMY_SIZE,
             height: ENEMY_SIZE,
-            backgroundColor: '#f00'
-          }} />
+            backgroundColor: '#e74c3c',
+            borderRadius: '5px',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            fontSize: '15px'
+          }}>👾</div>
         ))}
 
         {gameOver && (
           <div style={{
             position: 'absolute',
             top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.8)',
-            display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center'
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+            zIndex: 10
           }}>
-            <h2>GAME OVER</h2>
-            <button onClick={resetGame} style={{ padding: '10px 20px', cursor: 'pointer' }}>Restart</button>
+            <h2 style={{ fontSize: '40px', color: '#e74c3c' }}>GAME OVER</h2>
+            <p style={{ fontSize: '24px' }}>Final Score: {score}</p>
+            <button 
+              onClick={(e) => { e.stopPropagation(); resetGame(); }} 
+              style={{ 
+                padding: '12px 30px', 
+                fontSize: '18px', 
+                cursor: 'pointer',
+                backgroundColor: '#2ecc71',
+                border: 'none',
+                color: 'white',
+                borderRadius: '5px',
+                marginTop: '20px'
+              }}
+            >Try Again</button>
           </div>
         )}
       </div>
