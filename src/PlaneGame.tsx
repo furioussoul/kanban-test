@@ -7,7 +7,7 @@ import GameOverOverlay from './components/GameOverOverlay';
 import { GAME_WIDTH, GAME_HEIGHT, PLAYER_SIZE } from './constants';
 
 // Main Game Component
-const PlaneGame: React.FC = () => {
+const PlaneGame: React.FC = () => { // Initialized Game
   const {
     playerPos,
     setPlayerPos,
