@@ -25,9 +25,13 @@ export const useGameEngine = () => {
   const [lives, setLives] = useState(INITIAL_LIVES);
   const [status, setStatus] = useState<GameStatus>('PLAYING');
   
+  const [powerUps, setPowerUps] = useState<GameObject[]>([]);
+  const [hasTripleShot, setHasTripleShot] = useState(false);
+  
   const keysPressed = useRef<Set<string>>(new Set());
   const lastEnemyTime = useRef<number>(0);
   const lastFireTime = useRef<number>(0);
+  const tripleShotTimer = useRef<NodeJS.Timeout | null>(null);
   const requestRef = useRef<number>();
   
   // Use refs for values needed in the animation loop to avoid stale closures
@@ -35,6 +39,7 @@ export const useGameEngine = () => {
     playerPos,
     bullets,
     enemies,
+    powerUps,
     status,
     lives,
     score
@@ -42,23 +47,28 @@ export const useGameEngine = () => {
 
   // Sync refs with state
   useEffect(() => {
-    stateRef.current = { playerPos, bullets, enemies, status, lives, score };
-  }, [playerPos, bullets, enemies, status, lives, score]);
+    stateRef.current = { playerPos, bullets, enemies, powerUps, status, lives, score };
+  }, [playerPos, bullets, enemies, powerUps, status, lives, score]);
 
   const shoot = useCallback(() => {
     const now = Date.now();
     if (now - lastFireTime.current < FIRE_RATE) return;
 
-    setBullets(prev => [
-      ...prev, 
-      { 
-        id: now, 
-        x: stateRef.current.playerPos.x + PLAYER_SIZE / 2 - BULLET_SIZE / 2, 
-        y: stateRef.current.playerPos.y 
-      }
-    ]);
+    const bulletX = stateRef.current.playerPos.x + PLAYER_SIZE / 2 - BULLET_SIZE / 2;
+    const bulletY = stateRef.current.playerPos.y;
+
+    if (hasTripleShot) {
+      setBullets(prev => [
+        ...prev, 
+        { id: now, x: bulletX, y: bulletY },
+        { id: now + 1, x: bulletX - 20, y: bulletY + 10 },
+        { id: now + 2, x: bulletX + 20, y: bulletY + 10 }
+      ]);
+    } else {
+      setBullets(prev => [...prev, { id: now, x: bulletX, y: bulletY }]);
+    }
     lastFireTime.current = now;
-  }, []);
+  }, [hasTripleShot]);
 
   const spawnEnemy = useCallback(() => {
     const now = Date.now();
@@ -80,6 +90,11 @@ export const useGameEngine = () => {
         }
       ]);
       lastEnemyTime.current = now;
+
+      // Randomly spawn powerup
+      if (Math.random() > 0.9) {
+        setPowerUps(prev => [...prev, { id: now + 5, x: Math.random() * (GAME_WIDTH - 20), y: -20 }]);
+      }
     }
   }, []);
 
@@ -88,6 +103,8 @@ export const useGameEngine = () => {
     setLives(INITIAL_LIVES);
     setBullets([]);
     setEnemies([]);
+    setPowerUps([]);
+    setHasTripleShot(false);
     setStatus('PLAYING');
     setPlayerPos({ x: GAME_WIDTH / 2 - PLAYER_SIZE / 2, y: GAME_HEIGHT - 60 });
   }, []);

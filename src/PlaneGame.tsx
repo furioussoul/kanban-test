@@ -91,6 +91,53 @@ const PlaneGame: React.FC = () => { // Initialized Game
           <Enemy key={e.id} enemy={e} />
         ))}
 
+        {powerUps.map(p => (
+          <div key={p.id} style={{
+            position: 'absolute',
+            left: p.x,
+            top: p.y,
+            width: 25,
+            height: 25,
+            backgroundColor: '#FFD700',
+            borderRadius: '50%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            boxShadow: '0 0 10px #FFD700',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            color: '#000',
+            animation: 'pulse 0.5s infinite alternate',
+            zIndex: 8
+          }}>
+            W
+          </div>
+        ))}
+
+        {hasTripleShot && (
+          <div style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            padding: '5px 10px',
+            backgroundColor: 'rgba(255, 215, 0, 0.3)',
+            borderRadius: '5px',
+            border: '1px solid #FFD700',
+            color: '#FFD700',
+            fontSize: '12px',
+            zIndex: 20
+          }}>
+            TRIPLE SHOT ACTIVE!
+          </div>
+        )}
+
+        <style>{`
+          @keyframes pulse {
+            from { transform: scale(1); opacity: 0.8; }
+            to { transform: scale(1.2); opacity: 1; }
+          }
+        `}</style>
+
         {status === 'GAME_OVER' && (
           <GameOverOverlay score={score} onReset={resetGame} />
         )}
