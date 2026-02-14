@@ -19,6 +19,7 @@ export const useGameEngine = () => {
   const [bullets, setBullets] = useState<GameObject[]>([]);
   const [enemies, setEnemies] = useState<GameObject[]>([]);
   const [score, setScore] = useState(0);
+  const [isMultiShot, setIsMultiShot] = useState(false); // New power-up state
   const [status, setStatus] = useState<GameStatus>('PLAYING');
   
   const keysPressed = useRef<Set<string>>(new Set());
@@ -27,13 +28,22 @@ export const useGameEngine = () => {
 
   const shoot = useCallback(() => {
     setPlayerPos(currentPos => {
-      setBullets(prev => [
-        ...prev, 
-        { id: Date.now(), x: currentPos.x + PLAYER_SIZE / 2 - BULLET_SIZE / 2, y: currentPos.y }
-      ]);
+      const newBullets = [];
+      const centerX = currentPos.x + PLAYER_SIZE / 2 - BULLET_SIZE / 2;
+      
+      // Basic bullet
+      newBullets.push({ id: Date.now(), x: centerX, y: currentPos.y });
+      
+      // Triple shot logic
+      if (isMultiShot) {
+        newBullets.push({ id: Date.now() + 1, x: centerX - 15, y: currentPos.y + 10 });
+        newBullets.push({ id: Date.now() + 2, x: centerX + 15, y: currentPos.y + 10 });
+      }
+
+      setBullets(prev => [...prev, ...newBullets]);
       return currentPos;
     });
-  }, []);
+  }, [isMultiShot]);
 
   const spawnEnemy = useCallback(() => {
     const now = Date.now();
