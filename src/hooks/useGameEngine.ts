@@ -31,7 +31,7 @@ export const useGameEngine = () => {
   const keysPressed = useRef<Set<string>>(new Set());
   const lastEnemyTime = useRef<number>(0);
   const lastFireTime = useRef<number>(0);
-  const tripleShotTimer = useRef<NodeJS.Timeout | null>(null);
+  const tripleShotTimer = useRef<any>(null);
   const requestRef = useRef<number>();
   
   // Use refs for values needed in the animation loop to avoid stale closures
@@ -121,6 +121,7 @@ export const useGameEngine = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      if (tripleShotTimer.current) clearTimeout(tripleShotTimer.current);
     };
   }, []);
 
@@ -221,6 +222,36 @@ export const useGameEngine = () => {
       return newEnemies;
     });
 
+    // 5. Move Power-ups & Collision Detection
+    setPowerUps(prevPowerUps => {
+      const newPowerUps: GameObject[] = [];
+      const { playerPos } = stateRef.current;
+
+      for (const p of prevPowerUps) {
+        const newY = p.y + 2; // Power-ups fall slowly
+        
+        // Collision with player (approximate 25x25 size for powerup)
+        if (
+          playerPos.x < p.x + 25 &&
+          playerPos.x + PLAYER_SIZE > p.x &&
+          playerPos.y < newY + 25 &&
+          playerPos.y + PLAYER_SIZE > newY
+        ) {
+          setHasTripleShot(true);
+          if (tripleShotTimer.current) clearTimeout(tripleShotTimer.current);
+          tripleShotTimer.current = setTimeout(() => {
+            setHasTripleShot(false);
+          }, 10000); // 10 seconds of triple shot
+          continue; // Power-up collected
+        }
+
+        if (newY < GAME_HEIGHT) {
+          newPowerUps.push({ ...p, y: newY });
+        }
+      }
+      return newPowerUps;
+    });
+
     spawnEnemy();
     requestRef.current = requestAnimationFrame(update);
   }, [shoot, spawnEnemy]);
@@ -241,6 +272,8 @@ export const useGameEngine = () => {
     lives,
     level: Math.floor(score / 500) + 1,
     status,
+    powerUps,
+    hasTripleShot,
     shoot,
     resetGame
   };

@@ -17,6 +17,8 @@ const PlaneGame: React.FC = () => { // Initialized Game
     lives,
     level,
     status,
+    powerUps,
+    hasTripleShot,
     shoot,
     resetGame
   } = useGameEngine();
