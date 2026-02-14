@@ -95,9 +95,10 @@ export const useGameEngine = () => {
       .filter(b => b.y > -BULLET_SIZE)
     );
 
-    // 2. Move Enemies
+    // 2. Move Enemies (Speed increases with score)
+    const currentEnemySpeed = ENEMY_SPEED + Math.floor(score / 100);
     setEnemies(prev => {
-      return prev.map(e => ({ ...e, y: e.y + ENEMY_SPEED }))
+      return prev.map(e => ({ ...e, y: e.y + currentEnemySpeed }))
         .filter(e => e.y < GAME_HEIGHT);
     });
 
@@ -164,6 +165,7 @@ export const useGameEngine = () => {
     bullets,
     enemies,
     score,
+    level: Math.floor(score / 100) + 1,
     status,
     shoot,
     resetGame

@@ -13,6 +13,7 @@ const PlaneGame: React.FC = () => {
     bullets,
     enemies,
     score,
+    level,
     status,
     shoot,
     resetGame
@@ -46,7 +47,7 @@ const PlaneGame: React.FC = () => {
       userSelect: 'none'
     }}>
       <h1>Plane Shooter Pro</h1>
-      <p>Score: {score} | WASD to move, Space/Click to shoot</p>
+      <p>Level: {level} | Score: {score} | WASD to move, Space/Click to shoot</p>
       
       <div 
         onMouseMove={handleMouseMove}
