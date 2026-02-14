@@ -13,9 +13,11 @@ const Bullet: React.FC<BulletProps> = ({ bullet }) => {
       left: bullet.x,
       top: bullet.y,
       width: BULLET_SIZE,
-      height: BULLET_SIZE,
-      backgroundColor: '#f1c40f',
-      borderRadius: '50%'
+      height: BULLET_SIZE * 2,
+      background: 'linear-gradient(to bottom, #F5A623, #FFD93D)',
+      borderRadius: '5px',
+      boxShadow: '0 0 8px #F5A623',
+      zIndex: 5
     }} />
   );
 };

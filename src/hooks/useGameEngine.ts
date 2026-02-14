@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { GameObject, PlayerPos, GameStatus } from '../types';
+import { GameObject, PlayerPos, GameStatus, EnemyType } from '../types';
 import { 
   GAME_WIDTH, 
   GAME_HEIGHT, 
@@ -8,7 +8,10 @@ import {
   BULLET_SIZE, 
   BULLET_SPEED, 
   ENEMY_SPEED, 
-  ENEMY_SPAWN_RATE 
+  ENEMY_SPAWN_RATE,
+  FIRE_RATE,
+  INITIAL_LIVES,
+  PLAYER_SPEED
 } from '../constants';
 
 export const useGameEngine = () => {
@@ -19,28 +22,62 @@ export const useGameEngine = () => {
   const [bullets, setBullets] = useState<GameObject[]>([]);
   const [enemies, setEnemies] = useState<GameObject[]>([]);
   const [score, setScore] = useState(0);
+  const [lives, setLives] = useState(INITIAL_LIVES);
   const [status, setStatus] = useState<GameStatus>('PLAYING');
   
   const keysPressed = useRef<Set<string>>(new Set());
   const lastEnemyTime = useRef<number>(0);
+  const lastFireTime = useRef<number>(0);
   const requestRef = useRef<number>();
+  
+  // Use refs for values needed in the animation loop to avoid stale closures
+  const stateRef = useRef({
+    playerPos,
+    bullets,
+    enemies,
+    status,
+    lives,
+    score
+  });
+
+  // Sync refs with state
+  useEffect(() => {
+    stateRef.current = { playerPos, bullets, enemies, status, lives, score };
+  }, [playerPos, bullets, enemies, status, lives, score]);
 
   const shoot = useCallback(() => {
-    setPlayerPos(currentPos => {
-      setBullets(prev => [
-        ...prev, 
-        { id: Date.now(), x: currentPos.x + PLAYER_SIZE / 2 - BULLET_SIZE / 2, y: currentPos.y }
-      ]);
-      return currentPos;
-    });
+    const now = Date.now();
+    if (now - lastFireTime.current < FIRE_RATE) return;
+
+    setBullets(prev => [
+      ...prev, 
+      { 
+        id: now, 
+        x: stateRef.current.playerPos.x + PLAYER_SIZE / 2 - BULLET_SIZE / 2, 
+        y: stateRef.current.playerPos.y 
+      }
+    ]);
+    lastFireTime.current = now;
   }, []);
 
   const spawnEnemy = useCallback(() => {
     const now = Date.now();
-    if (now - lastEnemyTime.current > ENEMY_SPAWN_RATE) {
+    const spawnInterval = Math.max(200, ENEMY_SPAWN_RATE - Math.floor(stateRef.current.score / 500) * 100);
+    
+    if (now - lastEnemyTime.current > spawnInterval) {
+      const type: EnemyType = Math.random() > 0.8 ? 'TANK' : 'REGULAR';
+      const health = type === 'TANK' ? 3 : 1;
+      
       setEnemies(prev => [
         ...prev, 
-        { id: now, x: Math.random() * (GAME_WIDTH - ENEMY_SIZE), y: -ENEMY_SIZE }
+        { 
+          id: now, 
+          x: Math.random() * (GAME_WIDTH - ENEMY_SIZE), 
+          y: -ENEMY_SIZE,
+          type,
+          health,
+          maxHealth: health
+        }
       ]);
       lastEnemyTime.current = now;
     }
@@ -48,6 +85,7 @@ export const useGameEngine = () => {
 
   const resetGame = useCallback(() => {
     setScore(0);
+    setLives(INITIAL_LIVES);
     setBullets([]);
     setEnemies([]);
     setStatus('PLAYING');
@@ -57,7 +95,6 @@ export const useGameEngine = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysPressed.current.add(e.code);
-      if (e.code === 'Space') shoot();
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       keysPressed.current.delete(e.code);
@@ -68,89 +105,108 @@ export const useGameEngine = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [shoot]);
+  }, []);
 
   const update = useCallback(() => {
-    if (status !== 'PLAYING') return;
+    if (stateRef.current.status !== 'PLAYING') return;
 
-    // 0. Move Player (Keyboard)
-    setPlayerPos(prev => {
-      let newX = prev.x;
-      let newY = prev.y;
-      const speed = 5;
-      if (keysPressed.current.has('ArrowLeft') || keysPressed.current.has('KeyA')) newX -= speed;
-      if (keysPressed.current.has('ArrowRight') || keysPressed.current.has('KeyD')) newX += speed;
-      if (keysPressed.current.has('ArrowUp') || keysPressed.current.has('KeyW')) newY -= speed;
-      if (keysPressed.current.has('ArrowDown') || keysPressed.current.has('KeyS')) newY += speed;
+    // 1. Move Player
+    let dx = 0;
+    let dy = 0;
+    if (keysPressed.current.has('ArrowLeft') || keysPressed.current.has('KeyA')) dx -= PLAYER_SPEED;
+    if (keysPressed.current.has('ArrowRight') || keysPressed.current.has('KeyD')) dx += PLAYER_SPEED;
+    if (keysPressed.current.has('ArrowUp') || keysPressed.current.has('KeyW')) dy -= PLAYER_SPEED;
+    if (keysPressed.current.has('ArrowDown') || keysPressed.current.has('KeyS')) dy += PLAYER_SPEED;
 
-      return {
-        x: Math.max(0, Math.min(newX, GAME_WIDTH - PLAYER_SIZE)),
-        y: Math.max(0, Math.min(newY, GAME_HEIGHT - PLAYER_SIZE))
-      };
-    });
+    if (dx !== 0 || dy !== 0) {
+      setPlayerPos(prev => ({
+        x: Math.max(0, Math.min(prev.x + dx, GAME_WIDTH - PLAYER_SIZE)),
+        y: Math.max(0, Math.min(prev.y + dy, GAME_HEIGHT - PLAYER_SIZE))
+      }));
+    }
 
-    // 1. Move Bullets
+    // 2. Auto-fire
+    if (keysPressed.current.has('Space')) {
+      shoot();
+    }
+
+    // 3. Move Bullets
     setBullets(prev => prev
       .map(b => ({ ...b, y: b.y - BULLET_SPEED }))
       .filter(b => b.y > -BULLET_SIZE)
     );
 
-    // 2. Move Enemies (Speed increases with score)
-    const currentEnemySpeed = ENEMY_SPEED + Math.floor(score / 100);
-    setEnemies(prev => {
-      return prev.map(e => ({ ...e, y: e.y + currentEnemySpeed }))
-        .filter(e => e.y < GAME_HEIGHT);
-    });
+    // 4. Move Enemies & Collision Detection
+    const currentEnemySpeed = ENEMY_SPEED + Math.floor(stateRef.current.score / 1000);
+    
+    setEnemies(prevEnemies => {
+      const newEnemies: GameObject[] = [];
+      const currentBullets = stateRef.current.bullets;
+      const hitBulletIds = new Set<number>();
+      let playerHit = false;
 
-    spawnEnemy();
-    requestRef.current = requestAnimationFrame(update);
-  }, [status, spawnEnemy]);
+      for (const enemy of prevEnemies) {
+        let alive = true;
+        let enemyY = enemy.y + currentEnemySpeed;
+        
+        // Check bullet collisions
+        for (const bullet of currentBullets) {
+          if (hitBulletIds.has(bullet.id)) continue;
 
-  // Collision Detection
-  useEffect(() => {
-    if (status !== 'PLAYING') return;
-
-    const collisionInterval = setInterval(() => {
-      setEnemies(prevEnemies => {
-        let hitIds: number[] = [];
-        let collisionWithPlayer = false;
-
-        const remainingEnemies = prevEnemies.filter(enemy => {
-          const bulletHit = bullets.find(bullet => 
+          if (
             bullet.x < enemy.x + ENEMY_SIZE &&
             bullet.x + BULLET_SIZE > enemy.x &&
             bullet.y < enemy.y + ENEMY_SIZE &&
             bullet.y + BULLET_SIZE > enemy.y
-          );
-
-          if (bulletHit) {
-            hitIds.push(bulletHit.id);
-            setScore(s => s + 10);
-            return false;
-          }
-
-          if (
-            playerPos.x < enemy.x + ENEMY_SIZE &&
-            playerPos.x + PLAYER_SIZE > enemy.x &&
-            playerPos.y < enemy.y + ENEMY_SIZE &&
-            playerPos.y + PLAYER_SIZE > enemy.y
           ) {
-            collisionWithPlayer = true;
+            hitBulletIds.add(bullet.id);
+            const newHealth = (enemy.health || 1) - 1;
+            if (newHealth <= 0) {
+              alive = false;
+              setScore(s => s + (enemy.type === 'TANK' ? 50 : 10));
+              break;
+            } else {
+              enemy.health = newHealth;
+            }
           }
-
-          return true;
-        });
-
-        if (collisionWithPlayer) setStatus('GAME_OVER');
-        if (hitIds.length > 0) {
-          setBullets(bs => bs.filter(b => !hitIds.includes(b.id)));
         }
-        return remainingEnemies;
-      });
-    }, 50);
 
-    return () => clearInterval(collisionInterval);
-  }, [bullets, playerPos, status]);
+        // Check player collision
+        if (alive && 
+          stateRef.current.playerPos.x < enemy.x + ENEMY_SIZE &&
+          stateRef.current.playerPos.x + PLAYER_SIZE > enemy.x &&
+          stateRef.current.playerPos.y < enemy.y + ENEMY_SIZE &&
+          stateRef.current.playerPos.y + PLAYER_SIZE > enemy.y
+        ) {
+          playerHit = true;
+          alive = false; // Enemy destroyed on impact
+        }
+
+        if (alive && enemyY < GAME_HEIGHT) {
+          newEnemies.push({ ...enemy, y: enemyY });
+        }
+      }
+
+      if (playerHit) {
+        setLives(l => {
+          const nextLives = l - 1;
+          if (nextLives <= 0) {
+            setStatus('GAME_OVER');
+          }
+          return nextLives;
+        });
+      }
+
+      if (hitBulletIds.size > 0) {
+        setBullets(bs => bs.filter(b => !hitBulletIds.has(b.id)));
+      }
+
+      return newEnemies;
+    });
+
+    spawnEnemy();
+    requestRef.current = requestAnimationFrame(update);
+  }, [shoot, spawnEnemy]);
 
   useEffect(() => {
     requestRef.current = requestAnimationFrame(update);
@@ -165,7 +221,8 @@ export const useGameEngine = () => {
     bullets,
     enemies,
     score,
-    level: Math.floor(score / 100) + 1,
+    lives,
+    level: Math.floor(score / 500) + 1,
     status,
     shoot,
     resetGame

@@ -14,6 +14,7 @@ const PlaneGame: React.FC = () => { // Initialized Game
     bullets,
     enemies,
     score,
+    lives,
     level,
     status,
     shoot,
@@ -40,15 +41,29 @@ const PlaneGame: React.FC = () => { // Initialized Game
       display: 'flex', 
       flexDirection: 'column', 
       alignItems: 'center', 
-      backgroundColor: '#222', 
+      backgroundColor: '#1a1a2e', 
       minHeight: '100vh', 
       color: 'white', 
       padding: '20px', 
-      fontFamily: 'Arial',
+      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
       userSelect: 'none'
     }}>
-      <h1>Plane Shooter Pro</h1>
-      <p>Level: {level} | Score: {score} | WASD to move, Space/Click to shoot</p>
+      <h1 style={{ margin: '0 0 10px 0', textShadow: '0 0 10px #4A90E2' }}>ACE STRIKER</h1>
+      <div style={{ 
+        display: 'flex', 
+        gap: '20px', 
+        marginBottom: '15px', 
+        fontSize: '18px', 
+        fontWeight: 'bold',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        padding: '10px 20px',
+        borderRadius: '20px',
+        border: '1px solid #444'
+      }}>
+        <span>LEVEL: <span style={{ color: '#4A90E2' }}>{level}</span></span>
+        <span>SCORE: <span style={{ color: '#F5A623' }}>{score}</span></span>
+        <span>LIVES: <span style={{ color: '#E94E77' }}>{'❤️'.repeat(lives)}</span></span>
+      </div>
       
       <div 
         onMouseMove={handleMouseMove}
