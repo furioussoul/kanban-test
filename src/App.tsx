@@ -1,8 +1,8 @@
-import PlaneGame from './PlaneGame'
+import LoginPage from './pages/LoginPage'
 
 function App() {
   return (
-    <PlaneGame />
+    <LoginPage onLoginSuccess={() => console.log('Login successful!')} />
   )
 }
 
