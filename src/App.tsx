@@ -1,8 +1,8 @@
-import LoginPage from './pages/LoginPage'
+import BilibiliLayout from './components/Bilibili/BilibiliLayout'
 
 function App() {
   return (
-    <LoginPage onLoginSuccess={() => console.log('Login successful!')} />
+    <BilibiliLayout />
   )
 }
 
