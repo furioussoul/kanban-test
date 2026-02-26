@@ -2,6 +2,7 @@ import React from 'react';
 import BilibiliHeader from './BilibiliHeader';
 import BilibiliCategory from './BilibiliCategory';
 import BilibiliVideoCard from './BilibiliVideoCard';
+import BilibiliBanner from './BilibiliBanner';
 
 const DUMMY_VIDEOS = [
   {
@@ -119,7 +120,8 @@ const BilibiliLayout: React.FC = () => {
     <div className="min-h-screen bg-white">
       <BilibiliHeader />
       
-      <main className="pt-20 px-4 md:px-8 max-w-[1600px] mx-auto">
+      <main className="pt-16 px-4 md:px-8 max-w-[1700px] mx-auto space-y-4">
+        <BilibiliBanner />
         <BilibiliCategory />
         
         {/* Video Grid */}
