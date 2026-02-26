@@ -17,6 +17,8 @@ const BilibiliHeader: React.FC = () => {
           <a href="#" className="hover:text-blue-400">番剧</a>
           <a href="#" className="hover:text-blue-400">直播</a>
           <a href="#" className="hover:text-blue-400">游戏中心</a>
+          <a href="#" className="hover:text-blue-400">会员购</a>
+          <a href="#" className="hover:text-blue-400">下载客户端</a>
         </nav>
       </div>
 
