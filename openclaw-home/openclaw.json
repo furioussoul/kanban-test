@@ -1,0 +1,23 @@
+{
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "gateway": {
+    "auth": {
+      "mode": "token",
+      "token": "123456"
+    },
+    "bind": "lan",
+    "port": 3000,
+    "controlUi": {
+        "dangerouslyAllowHostHeaderOriginFallback": true
+    }
+  },
+  "meta": {
+    "lastTouchedVersion": "2026.2.26",
+    "lastTouchedAt": "2026-02-27T02:53:02.202Z"
+  }
+}

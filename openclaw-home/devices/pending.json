@@ -1,0 +1,22 @@
+{
+  "d3471c76-0de0-42de-b33f-1eb3d0881d1f": {
+    "requestId": "d3471c76-0de0-42de-b33f-1eb3d0881d1f",
+    "deviceId": "0de383673009d8f6ea4484840d15dc1234aff4c1cb7cff154ccb0e8871182ece",
+    "publicKey": "h5m2F4YmDqU8Ps2WrpURouWJ1_3rT7a9OOdgKmmqLkU",
+    "platform": "MacIntel",
+    "clientId": "openclaw-control-ui",
+    "clientMode": "webchat",
+    "role": "operator",
+    "roles": [
+      "operator"
+    ],
+    "scopes": [
+      "operator.admin",
+      "operator.approvals",
+      "operator.pairing"
+    ],
+    "silent": false,
+    "isRepair": false,
+    "ts": 1772161798988
+  }
+}
